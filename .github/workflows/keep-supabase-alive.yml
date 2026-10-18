@@ -1,0 +1,23 @@
+# Supabase無料プランの自動停止を防ぐため、3日ごとにtanksを1件だけ読みに行く
+name: Supabase keep-alive
+
+on:
+  schedule:
+    - cron: "0 0 */3 * *" # 3日ごと 9:00 (日本時間)
+  workflow_dispatch: # GitHubの画面から手動でも実行できる
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Supabaseにアクセス
+        env:
+          SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          status=$(curl -s -o /dev/null -w "%{http_code}" \
+            "$SUPABASE_URL/rest/v1/tanks?select=id&limit=1" \
+            -H "apikey: $SUPABASE_KEY" \
+            -H "Authorization: Bearer $SUPABASE_KEY")
+          echo "HTTP status: $status"
+          test "$status" = "200"
