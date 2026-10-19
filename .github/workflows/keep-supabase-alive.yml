@@ -15,9 +15,17 @@ jobs:
           SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
         run: |
-          status=$(curl -s -o /dev/null -w "%{http_code}" \
-            "$SUPABASE_URL/rest/v1/tanks?select=id&limit=1" \
-            -H "apikey: $SUPABASE_KEY" \
-            -H "Authorization: Bearer $SUPABASE_KEY")
+          # 貼り付け時に紛れ込んだ空白・改行と末尾の / を取り除く
+          url=$(printf '%s' "$SUPABASE_URL" | tr -d '[:space:]')
+          url=${url%/}
+          key=$(printf '%s' "$SUPABASE_KEY" | tr -d '[:space:]')
+          if [ -z "$url" ] || [ -z "$key" ]; then
+            echo "Secretが未登録です (URL: ${#url}文字, KEY: ${#key}文字)"
+            exit 1
+          fi
+          status=$(curl -s -o response.txt -w "%{http_code}" \
+            "$url/rest/v1/tanks?select=id&limit=1" \
+            -H "apikey: $key")
           echo "HTTP status: $status"
+          cat response.txt; echo
           test "$status" = "200"
